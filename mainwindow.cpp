@@ -6,12 +6,18 @@
 #include <QSettings>
 #include <QFile>
 #include <QTextStream>
+#include <QProcess>
+#include <QStandardPaths>
 #include <QDebug>
+
 
 MainWindow::MainWindow(QMainWindow *parent)
         :QMainWindow(parent)
 {
      mw.setupUi(this);
+     
+     //QCoreApplication::setApplicationName("sign");
+     QCoreApplication::setOrganizationName("sign");
      
      view = new QWebView(this);
      
@@ -21,34 +27,21 @@ MainWindow::MainWindow(QMainWindow *parent)
      timer = new QTimer(this);
      connect(timer, SIGNAL(timeout()), this, SLOT(change()));
      
-     connect(view,SIGNAL(loadFinished(bool)),this, SLOT(checkPage()));     
+     //connect(view,SIGNAL(loadFinished(bool)),this, SLOT(checkPage()));     
      
      //set up the basic info for qsettings
      QCoreApplication::setOrganizationName("sign");
      QCoreApplication::setApplicationName("sign");
           
-     timerDelay = 5000; //in milliseconds,  1000ms = 1s
-     QSettings settings;
-     timerDelay = settings.value("timer").toInt();
+     timerDelay = 30000; //in milliseconds,  1000ms = 1s
      
      //set the index number
      index = 0;
-     
-     //set up the initial stuff for where the pages live     
-     pages = settings.value("pages").toString();
-     location = settings.value("location").toString();
-     
-     //set up the default page
-     defaultpage = pages + location + "default.html";     
-     
-     dbase = new Database();
-     
-     //pull all the stuff from the database
+
+//      pull all the stuff from the database
      checkSettings();
-     
-     //put this back later
-     //showFullScreen();
 }
+
 MainWindow::~MainWindow()
 {
      
@@ -56,7 +49,8 @@ MainWindow::~MainWindow()
 
 void MainWindow::change()
 {
-     //qDebug()<<"timer fired:"<<index;
+     //qWarning()<<"timer fired:"<<index;
+     //qWarning()<<urls.size();
      if (index >= urls.size())
      {
           index = 0;
@@ -69,40 +63,92 @@ void MainWindow::change()
      }
      if (urls.size() != 0)
      {
-          //build a fancy string to put in here
-          QString s = pages + location + urls.at(index) + ".html";
-          //view->setHtml(s);
-          view->load(QUrl(s));
+          QString page = "http://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index);
+          view->load(QUrl(page));
      }
-     else
-     {
-          //load the default page since there's nothing in the array
-          view->load(QUrl(defaultpage));
-     }
+//      else
+//      {
+//           //load the default page since there's nothing in the array
+//           //view->load(QUrl(defaultpage));
+//      }
      
      index++;
 }
 
 void MainWindow::checkSettings()
 {
-     //fill up the list first
-     dbase->getItems(&urls);
-
-     //show something to start with?
      QSettings settings;
-     pages = settings.value("pages").toString();
-     location = settings.value("location").toString();
-     defaultpage = pages + location + "default.html";
-     view->load(QUrl(defaultpage));
+     configFile = settings.value("config").toString();
      
-     timer->start(timerDelay);        //in milliseconds,  1000ms = 1s
-}
-
-void MainWindow::checkPage()
-{
-     if (view->findText("Not Found"))     
+     QString putHere = QStandardPaths::standardLocations(QStandardPaths::HomeLocation).join('/') + "/.config/" + QCoreApplication::organizationName() + "/"+configFile;
+//      qWarning()<<putHere;
+     QString command = "wget http://intraweb.wvutech.edu/digital_sign_pages/" + configFile + " -O " + putHere;
+     //qWarning()<<command;
+     
+     //get the configFile
+     QProcess::execute(command);
+     
+     QString configFileName = configFile;
+     if(QFile::exists(putHere))
      {
-          //load the default page instead
-          view->load(QUrl(defaultpage));
+          QFile file(putHere);
+          QStringList fields;
+          if (file.open(QIODevice::ReadOnly))
+          {
+               QTextStream in(&file);
+               while (!in.atEnd())
+               {
+                    QString line = in.readLine();
+                    fields = line.split(";");
+               }
+          }
+          else
+          {
+               qWarning()<<"couldn't open the file";
+          }
+          
+          QString s;
+          //empty out the url list
+          urls.clear();
+          foreach(s,fields)
+          {
+               QStringList item = s.split(',');
+               //load the webpage into the list of urls to cycle through
+               defaultPage = settings.value("default").toString();
+               if (item[0] != defaultPage)
+               {
+                    urls.append(item[0]);
+                    //load the time that the url should be displayed
+                    howlong.append(item[1]);
+                    //QString url = "http://intraweb.wvutech.edu/digital_sign_pages/" + item[0];
+                    //qWarning()<<url;
+                    //view->load(QUrl(url));
+               }
+               else
+               {
+                    defaultPage = "http://intraweb.wvutech.edu/digital_sign_pages/" + item[0];
+               }
+          }
+          //qWarning()<<"how many pages: "<<urls.size();
      }
+     else
+          qWarning()<<"list of items not there!";
+     
+     
+     if(urls.size() == 0)
+     {
+          //show something, just in case there's a problem
+          //qWarning()<<"nothing in the urls";
+          defaultPage = "http://intraweb.wvutech.edu/digital_sign_pages/default.html";
+          view->load(QUrl(defaultPage));
+     }
+     else
+     {
+          QString page = "http://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index);
+          view->load(QUrl(page));
+     }
+
+     
+     //start the timer
+     timer->start(timerDelay);     //in milliseconds, 1000ms = 1s
 }

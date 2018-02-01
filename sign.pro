@@ -7,16 +7,14 @@ TARGET = sign
 DEPENDPATH += .
 INCLUDEPATH += .
 
-QT += webkit
+QT += webkitwidgets widgets sql core
+#QT += widgets sql core
 
 # Input
-SOURCES += database.cpp \ 
-          main.cpp \
-          mainwindow.cpp
+SOURCES += main.cpp \
+           mainwindow.cpp
 
-HEADERS += database.h \
-          mainwindow.h
+HEADERS += mainwindow.h
      
 FORMS += formbase.ui
-
-QT += sql
+# 
