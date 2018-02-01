@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include <QPlainTextEdit>
-#include <QWebView>
+//#include <QWebView>
+#include <QWebEngineView>
+#include <QWebEngineProfile>
 #include <QLabel>
 #include <QTimer>
 #include <QSettings>
@@ -19,7 +21,15 @@ MainWindow::MainWindow(QMainWindow *parent)
      //QCoreApplication::setApplicationName("sign");
      QCoreApplication::setOrganizationName("sign");
      
-     view = new QWebView(this);
+     genericPage = "";
+     defaultPage = "";
+     
+     //view = new QWebView(this);
+     view = new QWebEngineView(this);
+     
+     profile = new QWebEngineProfile(view);
+     profile->clearHttpCache();
+     
      
      setCentralWidget(view);
      
@@ -33,13 +43,16 @@ MainWindow::MainWindow(QMainWindow *parent)
      QCoreApplication::setOrganizationName("sign");
      QCoreApplication::setApplicationName("sign");
           
-     timerDelay = 30000; //in milliseconds,  1000ms = 1s
+     timerDelay = 5000; //in milliseconds,  1000ms = 1s
      
      //set the index number
      index = 0;
 
-//      pull all the stuff from the database
+     //get the config file, pages and everything to start with
      checkSettings();
+     
+     //start the timer
+     timer->start(timerDelay);
 }
 
 MainWindow::~MainWindow()
@@ -47,108 +60,110 @@ MainWindow::~MainWindow()
      
 }
 
+void MainWindow::checkSettings()
+{
+     //stop the timer first
+     timer->stop();
+     //lets go get the configuration file
+     QSettings settings;
+     defaultPage = settings.value("default").toString();
+     QString configFileName = settings.value("config").toString();
+     //qWarning()<<"config file: " << configFileName;
+     QString putHere = QStandardPaths::standardLocations(QStandardPaths::HomeLocation).join('/') + "/.config/" + QCoreApplication::organizationName() + "/"+configFileName;
+     genericPage = QStandardPaths::standardLocations(QStandardPaths::HomeLocation).join('/') + "/.config/" + QCoreApplication::organizationName() + "/"+defaultPage;
+     //qWarning()<<putHere;
+     QString command = "wget https://intraweb.wvutech.edu/digital_sign_pages/" + configFileName + " -O " + putHere;
+
+     //execute the wget command to pull down the configuration file
+     QProcess::execute(command);
+     
+     //check and see if the file actually exists first
+     if (QFile::exists(putHere))
+     {
+          //open the configuration file
+          QFile file(putHere);
+          QStringList fields;
+          if(file.open(QIODevice::ReadOnly))
+          {
+               QTextStream incoming(&file);
+               while(!incoming.atEnd())
+               {
+                    QString line = incoming.readLine();
+                    fields = line.split(";");
+               }//end while
+          }//end file opening
+          else
+          {
+               //couldn't open the file, better log it!!
+               qWarning()<<"could not open file: "<<putHere;
+               view->setUrl(QUrl(genericPage));
+          }
+          //reset the index to start back at 0
+          index = 0;
+          //empty out the list of files
+          urls.clear();
+          
+          //clear the cache 
+          profile->clearHttpCache();
+          
+          QString s;
+          foreach(s,fields)
+          {
+               QStringList item = s.split(',');
+               urls.append(item[0]);
+               howlong.append(item[1]);
+          }//end for loop
+          
+          //now, we need to display the first page
+          if(urls.size() !=0)
+          {
+               //QUrl u = getPage(urls.at(index));
+               QUrl u = QString("https://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index));
+               view->setUrl(u);
+          }
+          else
+          {
+               //there was nothing in the urls, so display a generic page
+               view->setUrl(QUrl(genericPage));
+          }
+     }//end file was there
+     else
+     {
+          qWarning()<<"file "<< putHere <<"was not there!";
+          view->setUrl(QUrl(genericPage));
+     }
+     qWarning()<<"checkSettings() showing: "<<view->url();
+     view->show();
+     //restart the timer
+     timer->start(timerDelay);
+}
+
+
 void MainWindow::change()
 {
-     //qWarning()<<"timer fired:"<<index;
-     //qWarning()<<urls.size();
-     if (index >= urls.size())
+     qWarning()<<"timer went off, current index:"<<index;
+     //clear the cache
+     profile->clearHttpCache();
+     if (index >= urls.size()) //need to restart everything!
      {
           index = 0;
-          //stop the timer
           timer->stop();
-          //go get all the records again, just in case something changed
+          //get the settings again
           checkSettings();
           //restart the timer
           timer->start(timerDelay);
      }
-     if (urls.size() != 0)
+     
+     if (urls.size() != 0)    //we got stuff to show
      {
-          QString page = "http://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index);
-          view->load(QUrl(page));
+          QString p = "https://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index);
+          view->setUrl(QUrl(p));
+          index++;
      }
-//      else
-//      {
-//           //load the default page since there's nothing in the array
-//           //view->load(QUrl(defaultpage));
-//      }
-     
-     index++;
-}
-
-void MainWindow::checkSettings()
-{
-     QSettings settings;
-     configFile = settings.value("config").toString();
-     
-     QString putHere = QStandardPaths::standardLocations(QStandardPaths::HomeLocation).join('/') + "/.config/" + QCoreApplication::organizationName() + "/"+configFile;
-//      qWarning()<<putHere;
-     QString command = "wget http://intraweb.wvutech.edu/digital_sign_pages/" + configFile + " -O " + putHere;
-     //qWarning()<<command;
-     
-     //get the configFile
-     QProcess::execute(command);
-     
-     QString configFileName = configFile;
-     if(QFile::exists(putHere))
+     else //might want to show the default page since there's nothing to show
      {
-          QFile file(putHere);
-          QStringList fields;
-          if (file.open(QIODevice::ReadOnly))
-          {
-               QTextStream in(&file);
-               while (!in.atEnd())
-               {
-                    QString line = in.readLine();
-                    fields = line.split(";");
-               }
-          }
-          else
-          {
-               qWarning()<<"couldn't open the file";
-          }
-          
-          QString s;
-          //empty out the url list
-          urls.clear();
-          foreach(s,fields)
-          {
-               QStringList item = s.split(',');
-               //load the webpage into the list of urls to cycle through
-               defaultPage = settings.value("default").toString();
-               if (item[0] != defaultPage)
-               {
-                    urls.append(item[0]);
-                    //load the time that the url should be displayed
-                    howlong.append(item[1]);
-                    //QString url = "http://intraweb.wvutech.edu/digital_sign_pages/" + item[0];
-                    //qWarning()<<url;
-                    //view->load(QUrl(url));
-               }
-               else
-               {
-                    defaultPage = "http://intraweb.wvutech.edu/digital_sign_pages/" + item[0];
-               }
-          }
-          //qWarning()<<"how many pages: "<<urls.size();
+          view->setUrl(QUrl(genericPage));
      }
-     else
-          qWarning()<<"list of items not there!";
-     
-     
-     if(urls.size() == 0)
-     {
-          //show something, just in case there's a problem
-          //qWarning()<<"nothing in the urls";
-          defaultPage = "http://intraweb.wvutech.edu/digital_sign_pages/default.html";
-          view->load(QUrl(defaultPage));
-     }
-     else
-     {
-          QString page = "http://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index);
-          view->load(QUrl(page));
-     }
-
-     
-     //start the timer
-     timer->start(timerDelay);     //in milliseconds, 1000ms = 1s
-}
+     qWarning()<<"showing: "<<view->url();
+     view->show();
+}//end change

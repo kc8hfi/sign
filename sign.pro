@@ -7,7 +7,7 @@ TARGET = sign
 DEPENDPATH += .
 INCLUDEPATH += .
 
-QT += webkitwidgets widgets sql core
+QT += webenginewidgets widgets sql core
 #QT += widgets sql core
 
 # Input

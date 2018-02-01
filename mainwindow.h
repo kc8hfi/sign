@@ -3,9 +3,10 @@
 
 #include <QMainWindow>
 #include "ui_formbase.h"
-#include "database.h"
 
-class QWebView;
+//class QWebView;
+class QWebEngineView;
+class QWebEngineProfile;
 
 class MainWindow : public QMainWindow, private Ui_Form
 {
@@ -17,22 +18,30 @@ class MainWindow : public QMainWindow, private Ui_Form
           
      public slots:
           void change();
-          void checkPage();
+          //void checkPage();
      private:
           Ui_Form mw;
-          QWebView *view;
-          QWebView *testview;
+          //QWebView *view;
+          
+          QWebEngineProfile *profile;
+          QWebEngineView *view;
+          
+          //QWebView *testview;
           QTimer *timer;
           int timerDelay;
           
           QList<QString>urls;
+          QList<QString>howlong;
           int index;
           
-          QString location;
-          QString pages;   
-          QString defaultpage;
+          //QString location;
+          //QString pages;   
+          QString defaultPage;
+          QString genericPage;
           
-          Database *dbase;
+          //QUrl getPage(QString);
+          
+
 };
 
 #endif  //MAINWINDOW_H
