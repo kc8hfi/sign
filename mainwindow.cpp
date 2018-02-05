@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include <QPlainTextEdit>
-//#include <QWebView>
 #include <QWebEngineView>
 #include <QWebEngineProfile>
 #include <QLabel>
@@ -30,14 +29,11 @@ MainWindow::MainWindow(QMainWindow *parent)
      profile = new QWebEngineProfile(view);
      profile->clearHttpCache();
      
-     
      setCentralWidget(view);
      
      //set up a new timer 
      timer = new QTimer(this);
      connect(timer, SIGNAL(timeout()), this, SLOT(change()));
-     
-     //connect(view,SIGNAL(loadFinished(bool)),this, SLOT(checkPage()));     
      
      //set up the basic info for qsettings
      QCoreApplication::setOrganizationName("sign");
@@ -96,12 +92,15 @@ void MainWindow::checkSettings()
           {
                //couldn't open the file, better log it!!
                qWarning()<<"could not open file: "<<putHere;
-               view->setUrl(QUrl(genericPage));
+               view->load(QUrl(genericPage));
           }
           //reset the index to start back at 0
           index = 0;
           //empty out the list of files
           urls.clear();
+          
+          //empty out the howlong crap
+          howlong.clear();
           
           //clear the cache 
           profile->clearHttpCache();
@@ -119,23 +118,28 @@ void MainWindow::checkSettings()
           {
                //QUrl u = getPage(urls.at(index));
                QUrl u = QString("https://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index));
-               view->setUrl(u);
+               view->load(u);
+               index++;
           }
           else
           {
                //there was nothing in the urls, so display a generic page
-               view->setUrl(QUrl(genericPage));
+               view->load(QUrl(genericPage));
           }
      }//end file was there
      else
      {
           qWarning()<<"file "<< putHere <<"was not there!";
-          view->setUrl(QUrl(genericPage));
+          view->load(QUrl(genericPage));
      }
      qWarning()<<"checkSettings() showing: "<<view->url();
-     view->show();
+     //view->show();
+     view->page()->action(QWebEnginePage::ReloadAndBypassCache);
      //restart the timer
      timer->start(timerDelay);
+     
+     qWarning()<<"urls array:"<<urls;
+     qWarning()<<"howlong array:"<<howlong;
 }
 
 
@@ -157,13 +161,14 @@ void MainWindow::change()
      if (urls.size() != 0)    //we got stuff to show
      {
           QString p = "https://intraweb.wvutech.edu/digital_sign_pages/" + urls.at(index);
-          view->setUrl(QUrl(p));
+          view->load(QUrl(p));
           index++;
      }
      else //might want to show the default page since there's nothing to show
      {
-          view->setUrl(QUrl(genericPage));
+          view->load(QUrl(genericPage));
      }
      qWarning()<<"showing: "<<view->url();
-     view->show();
+     //view->show();
+     view->page()->action(QWebEnginePage::ReloadAndBypassCache);
 }//end change
