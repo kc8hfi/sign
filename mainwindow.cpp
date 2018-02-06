@@ -117,12 +117,7 @@ bool MainWindow::readServerConfig()
     QString command = "wget " + serverUrl + serverConf + " -O " + userHomeDir+".config/sign/tmp/"+serverConf;
 
     //Create process to execute our command
-    QProcess * process= new QProcess();
-
-    //Suppress our commands output by closing the standard out channel.
-    //We leave the std err chanel open for error logging
-    process->closeReadChannel(QProcess::StandardOutput);
-    process->start();
+    QProcess::execute(command);
 
     logger(fullInfo,"Info:\tFinished fetching Config File");
 
@@ -137,7 +132,7 @@ bool MainWindow::readServerConfig()
     //If File does not exist leave.
     if (!(serverConfigFile.exists()))
     {
-        logger(error,"Error:\tFile not found -- " + userHomeDir + "./config/sign/tmp/" + serverConf);
+        logger(error,"Error:\tFile not found -- " + userHomeDir + ".config/sign/tmp/" + serverConf);
         return false;
     }
 
@@ -313,8 +308,6 @@ void MainWindow::timerEvent()
         documents.clear();
         duration.clear();
 
-        //Make sure to clear the cache everytime were done with the expired data
-        profile->clearHttpCache();
         readServerConfig();
     }
 
