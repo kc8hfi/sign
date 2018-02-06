@@ -49,13 +49,13 @@ MainWindow::MainWindow(QMainWindow *parent)
          //Create web-engine for displaying the page
          view = new QWebEngineView(this);
 
-         //Set profile settings
-         profile = new QWebEngineProfile(view);
+         //Errata solution: Make sure we always get the most current page
+         view->page()->profile()->setCachePath(userHomeDir + ".config/sign/tmp/browserCache");
+         view->page()->profile()->setHttpCacheType(QWebEngineProfile::NoCache);
+         view->page()->profile()->setPersistentCookiesPolicy(QWebEngineProfile::NoPersistentCookies);
 
          //Set display to the view
          setCentralWidget(view);
-
-
 
          //Create Timer
          timer = new QTimer(this);
