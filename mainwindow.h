@@ -13,27 +13,42 @@ class MainWindow : public QMainWindow, private Ui_Form
      public:
           MainWindow(QMainWindow *parent=0);
           ~MainWindow();
-          void checkSettings();
           
      public slots:
-          void change();
+          void timerEvent();
+          void timerStart();
 
      private:
+          //CustomFunctions
+          void checkSettings();
+          bool readServerConfig();
+          bool initializeSettings();
+          void logger(int,QString);
+          void writeFile(QString);
+          void loadPage();
+
           Ui_Form mw;
           
-          
+          //Objects
           QWebEngineProfile *profile;
           QWebEngineView *view;
-          
           QTimer *timer;
-          int timerDelay;
+
           
-          QList<QString>urls;
-          QList<QString>howlong;
-          int index;
+          //Arrays
+          QList<QString>documents;
+          QList<int>duration;
           
+          //Vars
+          QString userHomeDir;
+          QString serverConf;
+          QString serverUrl;
           QString defaultPage;
-          QString genericPage;
+          int timerDelay;
+          int index;
+          int logLevel;
+          int defaultPageDuration;
+          bool logToFile;
 };
 
 #endif  //MAINWINDOW_H
