@@ -10,6 +10,7 @@ Place the contents of the config folder into the .config directory of the user t
 
 Config file
 ====
+~~~~
 serverUrl=https://yourserver.lan/mystuff	full path to the directory that contians your pages.
 defaultPage=default.html	the default page to display if no others are available
 defaultDuration=10	default length of time to stay on a page in seconds
@@ -17,7 +18,7 @@ serverConf=6.cfg	name of config file supplied by the server. contains the page n
 
 logLevel=10	sets the verbosity of the program's output. Possible values: 0-10
 logToFile=true	sets flag to write output to file. Possible values: true|false 
-
+~~~~
 
 Server Config
 ====
